@@ -1,0 +1,14 @@
+name: Use Reusable C++ Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  call-reusable:
+    uses: Build-and-test-C-Cpp/.github/workflows/buildtestccpp.yml@main
+    with:
+      compiler: gcc
+      build-system: cmake
