@@ -5,6 +5,6 @@ int add(int a, int b) {
 }
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    std::cout << "Hello, World from main" << std::endl;
     return 0;
 }
