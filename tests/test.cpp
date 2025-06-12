@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cassert>
-
+#include "../src/math.h"
 int add(int a, int b);
 
 int main() {
