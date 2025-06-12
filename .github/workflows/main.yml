@@ -8,7 +8,7 @@ on:
 
 jobs:
   call-reusable:
-    uses: Build-and-test-C-Cpp/.github/workflows/buildtestccpp.yml@main
+    uses: HimanshiRaghav/Build-and-test-C-Cpp/.github/workflows/buildtestccpp.yml@main
     with:
       compiler: gcc
       build-system: cmake
