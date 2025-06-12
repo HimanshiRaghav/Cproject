@@ -1,3 +1,8 @@
 #!/bin/bash
-echo "Running test executable..."
-./test
+echo "Running test_exec..."
+if [ -f "./build/test_exec" ]; then
+  ./build/test_exec
+else
+  echo "test_exec not found!"
+  exit 1
+fi
