@@ -13,7 +13,7 @@ app: $(APP_SRC)
 	$(CXX) $(CXXFLAGS) $(APP_SRC) -o app
 
 test: $(TEST_SRC)
-	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o test_exec
+	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o test
 
 clean:
-	rm -f app test_exec
+	rm -f app test
