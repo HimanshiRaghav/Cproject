@@ -8,5 +8,5 @@ jobs:
   build-and-test:
     uses: HimanshiRaghav/Build-and-test-C-Cpp/.github/workflows/buildtestccpp.yml@main
     with:
-      compiler: gcc
-      build-system: make
+      compiler: clang
+      build-system: cmake
