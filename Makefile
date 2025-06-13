@@ -3,7 +3,6 @@ CXXFLAGS = -std=c++17 -Wall -I.
 
 APP_SRC = src/main.cpp src/math.cpp
 TEST_SRC = tests/test.cpp src/math.cpp
-
 APP_BIN = app
 TEST_BIN = test_exec
 
