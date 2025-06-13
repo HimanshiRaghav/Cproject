@@ -7,7 +7,7 @@ TEST = tests/test.cpp
 all: test
 
 test:
-	$(CXX) $(CXXFLAGS) $(SRC) $(TEST) -o test
+$(CXX) $(CXXFLAGS) $(SRC) $(TEST) -o test
 
 clean:
-	rm -f test
+rm -f test
