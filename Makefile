@@ -1,14 +1,19 @@
 CXX ?= g++
 CXXFLAGS = -std=c++17 -Wall -I.
 
-SRC = src/main.cpp
-TEST = tests/test.cpp
+SRC_DIR = src
+TEST_DIR = tests
 
-all: test
+APP_SRC = $(SRC_DIR)/main.cpp $(SRC_DIR)/math.cpp
+TEST_SRC = $(TEST_DIR)/test.cpp $(SRC_DIR)/math.cpp
 
-test:
-	$(CXX) $(CXXFLAGS) $(SRC) $(TEST) -o test
+all: app test
+
+app: $(APP_SRC)
+	$(CXX) $(CXXFLAGS) $(APP_SRC) -o app
+
+test: $(TEST_SRC)
+	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o test_exec
 
 clean:
-	rm -f test
-
+	rm -f app test_exec
