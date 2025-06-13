@@ -6,14 +6,14 @@ echo "Running test_exec..."
 if [ "$BUILD_SYSTEM" == "cmake" ]; then
   if [ -f "./build/test_exec" ]; then
     chmod +x ./build/test_exec
-    ./build/test_execi
+    ./build/test_exec
   else
     echo "test_exec not found in build directory!"
     exit 1
   fi
 elif [ "$BUILD_SYSTEM" == "make" ]; then
   if [ -f "./test_exec" ]; then
-    chmod +x ./test_execi
+    chmod +x ./test_exec
     ./test_exec
   else
     echo "test_exec not found in root directory!"
