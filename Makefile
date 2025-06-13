@@ -16,14 +16,15 @@ $(TEST_BIN): $(TEST_SRC)
 	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o $(TEST_BIN)
 
 print-debug:
-    @pwd
+	@pwd
 	@echo "APP_SRC = $(APP_SRC)"
 	@echo "TEST_SRC = $(TEST_SRC)"
 	@echo "Checking if test_exec is built..."
 	@ls -l $(TEST_BIN) || echo "$(TEST_BIN) not found"
 
-
 CURRENT_DIR := $(shell pwd)
 
 print-dir:
-@echo "Current working directory: $(CURRENT_DIR)"
+	@echo "Current working directory: $(CURRENT_DIR)"
+
+
