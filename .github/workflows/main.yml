@@ -1,12 +1,12 @@
 name: Use Reusable C++ Build
+
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-    
+  workflow_dispatch:
+
 jobs:
-  call-reusable:
+  build-and-test:
     uses: HimanshiRaghav/Build-and-test-C-Cpp/.github/workflows/buildtestccpp.yml@main
     with:
       compiler: gcc
