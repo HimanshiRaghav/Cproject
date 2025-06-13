@@ -22,3 +22,7 @@ print-debug:
 	@ls -l $(TEST_BIN) || echo "$(TEST_BIN) not found"
 
 
+CURRENT_DIR := $(shell pwd)
+
+print-dir:
+@echo "Current working directory: $(CURRENT_DIR)"
