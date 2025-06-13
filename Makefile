@@ -15,5 +15,3 @@ $(APP_BIN): $(APP_SRC)
 test_exec: $(TEST_SRC)
 	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o test_exec
 
-clean:
-	rm -f $(APP_BIN) test_exec
