@@ -1,0 +1,153 @@
+name: C/C++ Building and testing
+
+on:
+  workflow_call:
+    inputs:
+      compiler:
+        description: Compiler either gcc or clang
+        required: true
+        type: string
+      build-system:
+        description: Build system either make or cmake
+        required: true
+        type: string
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_SYSTEM: ${{ inputs.build-system }}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v3
+
+      - name: Validate inputs
+        run: |
+          if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then 
+            echo "Invalid compiler: ${{ inputs.compiler }}"
+            exit 1
+          fi
+          if [[ "${{ inputs.build-system }}" != "make" && "${{ inputs.build-system }}" != "cmake" ]]; then
+            echo "Invalid build system: ${{ inputs.build-system }}"
+            exit 1
+          fi
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          if [[ "${{ inputs.compiler }}" == "gcc" ]]; then
+            sudo apt-get install -y build-essential
+          else
+            sudo apt-get install -y clang make
+          fi
+
+      - name: Configure environment variables
+        run: |
+          if [[ "${{ inputs.compiler }}" == "clang" ]]; then
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          else
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          fi
+
+      - name: Install CMake
+        if: ${{ inputs.build-system == 'cmake' }}
+        run: sudo apt-get install -y cmake
+
+      - name: Build with CMake
+        if: ${{ inputs.build-system == 'cmake' }}
+        id: build_cmake
+        run: |
+          mkdir -p build logs
+          cd build
+          cmake .. > ../logs/cmake_configure.log 2>&1
+          make > ../logs/cmake_build.log 2>&1
+
+      - name: Build with Make
+        if: ${{ inputs.build-system == 'make' }}
+        id: build_make
+        run: |
+          mkdir -p logs
+          make > logs/make_build.log 2>&1
+
+      
+
+      - name: Run Unit Tests
+        id: test_step
+        run: |
+          mkdir -p logs
+
+          # Print debug info
+          make print-debug || true
+
+          # Check if test_exec exists, if not, build it
+          if [ ! -f "./test_exec" ]; then
+            echo "test_exec not found"
+          else
+            echo " test_exec is being found "
+          fi
+
+          # Run test script or binary
+          if [ -f "./run_tests.sh" ]; then
+            chmod +x ./run_tests.sh
+            ./run_tests.sh > logs/test_output.log 2>&1
+            echo "Exit Code: $?" >> logs/test_output.log
+          elif [ -f "./test_exec" ]; then
+            chmod +x ./test_exec
+            ./test_exec > logs/test_output.log 2>&1
+            echo "Exit Code: $?" >> logs/test_output.log
+          else
+            echo "No test executable or test script found." > logs/test_output.log
+            exit 1
+          fi
+
+      - name: Store build and test logs
+        if: always()
+        run: |
+          mkdir -p logs
+          find build -name "*.log" -exec cp {} logs/ \; 2>/dev/null || true
+          find . -maxdepth 1 -name "*.log" -exec cp {} logs/ \; 2>/dev/null || true
+        continue-on-error: true
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-test-logs
+          path: logs/
+
+      - name: Summarize Build and Test Results
+        if: always()
+        run: |
+          echo "## Build and Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Build result
+          if [ "${{ inputs.build-system }}" == "cmake" ]; then
+            if [ "${{ steps.build_cmake.outcome }}" == "failure" ]; then
+              echo "| Build (CMake) | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Build (CMake) | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          elif [ "${{ inputs.build-system }}" == "make" ]; then
+            if [ "${{ steps.build_make.outcome }}" == "failure" ]; then
+              echo "| Build (Make) | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Build (Make) | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          # Test result
+          if [ "${{ steps.test_step.outcome }}" == "failure" ]; then
+            echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          else
+            if grep -q "No test executable or test script found" logs/test_output.log; then
+              echo "| Tests | ⚠️ Not Found |" >> $GITHUB_STEP_SUMMARY
+            elif grep -i "error:" logs/test_output.log || grep -i "fail" logs/test_output.log; then
+              echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
