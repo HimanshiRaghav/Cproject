@@ -1,6 +1,3 @@
-
-````markdown
-
 ---
 
 # 🏗️ C/C++ Building and Testing GitHub Action
@@ -11,21 +8,21 @@ This reusable workflow is designed to **build and test C/C++ projects** using ei
 
 ## 🔧 Features
 
-- ✅ Supports both `gcc` and `clang` compilers
-- ✅ Supports both `make` and `cmake` build systems
-- 🧪 Runs unit tests via `test_exec` or a `run_tests.sh` script
-- 📦 Uploads logs for build and test steps
-- 📋 Summarizes results in the GitHub Actions step summary
-- 🐳 Runs inside a Docker container for a consistent environment
+- ✅ Supports both `gcc` and `clang` compilers  
+- ✅ Supports both `make` and `cmake` build systems  
+- 🧪 Runs unit tests via `test_exec` or a `run_tests.sh` script  
+- 📦 Uploads logs for build and test steps  
+- 📋 Summarizes results in the GitHub Actions step summary  
+- 🐳 Runs inside a Docker container for a consistent environment  
 
 ---
 
 ## 📥 Inputs
 
-| Input         | Description                         | Required | Accepted Values         |
-|--------------|-------------------------------------|----------|--------------------------|
-| `compiler`   | Compiler to use for the build       | ✅ Yes   | `gcc`, `clang`           |
-| `build-system` | Build system to compile the code | ✅ Yes   | `make`, `cmake`          |
+| Input          | Description                         | Required | Accepted Values         |
+|----------------|-------------------------------------|----------|--------------------------|
+| `compiler`     | Compiler to use for the build       | ✅ Yes   | `gcc`, `clang`           |
+| `build-system` | Build system to compile the code    | ✅ Yes   | `make`, `cmake`          |
 
 ---
 
@@ -38,7 +35,7 @@ jobs:
     with:
       compiler: gcc
       build-system: cmake
-````
+```
 
 ---
 
@@ -58,29 +55,26 @@ The workflow assumes the following structure in your repository:
 └── run_tests.sh          # (Optional) Custom test runner script
 ```
 
-> ⚠️ Ensure your test executable is named `test_exec` or a `run_tests.sh` script is present.
+⚠️ Ensure your test executable is named `test_exec` or a `run_tests.sh` script is present.
 
 ---
 
 ## 📄 Output
 
-* 📝 Logs from build and test steps are saved to the `logs/` directory and uploaded as artifacts.
+* 📝 Logs from build and test steps are saved to the `logs/` directory and uploaded as artifacts.  
 * ✅ A GitHub Actions **summary** is appended showing whether:
-
-  * Build succeeded or failed
-  * Tests passed, failed, or were not found
-
+  * Build succeeded or failed  
+  * Tests passed, failed, or were not found  
 
 ---
 
 ### 🛠️ Debugging Tips
 
 * **Test Executable Location**:
+  - If you're using **Make**, the `test_exec` binary should be present in the **root directory**.
+  - If you're using **CMake**, the `test_exec` binary should be built under the **`build/` directory**.
 
-  * If you're using **Make**, the `test_exec` binary should be present in the **root directory**.
-  * If you're using **CMake**, the `test_exec` binary should be built under the **`build/` directory**.
-
-> This is handled internally by the `run_tests.sh` script:
+This is handled internally by the `run_tests.sh` script:
 
 ```bash
 # CMake
@@ -93,4 +87,3 @@ The workflow assumes the following structure in your repository:
 Make sure the correct path is used or the script will exit with a "not found" error.
 
 ---
-
