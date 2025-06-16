@@ -63,6 +63,8 @@ The workflow assumes the following structure in your repository:
 
 *  Logs from build and test steps are saved to the `logs/` directory and uploaded as artifacts.
 *  A GitHub Actions **summary** is appended showing whether:
+  * Build succeeded or failed  
+  * Tests passed, failed, or were not found  
 
 ---
 
