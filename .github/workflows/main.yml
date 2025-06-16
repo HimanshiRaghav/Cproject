@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 jobs:
   build-and-test:
-    uses: HimanshiRaghav/Build-and-test-C-Cpp/.github/workflows/buildtestccpp.yml@main
+    uses: ./.github/workflows/buildtestccpp.yml
     with:
       compiler: clang
       build-system: cmake
