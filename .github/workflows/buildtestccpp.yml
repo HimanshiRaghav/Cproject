@@ -61,15 +61,14 @@ jobs:
         if: ${{ inputs.build-system == 'cmake' }}
         id: build_cmake
         run: |
-          cd build 2>/dev/null || mkdir build && cd build
-          cmake .. > ../cmake_configure.log 2>&1 || (cat ../cmake_configure.log && exit 1)
-          make > ../cmake_build.log 2>&1 || (cat ../cmake_build.log && exit 1)
+          cmake . > cmake_configure.log 2>&1 || (cat cmake_configure.log && exit 1)
+          make > cmake_build.log 2>&1 || (cat cmake_build.log && exit 1)
 
       - name: Build with Make
         if: ${{ inputs.build-system == 'make' }}
         id: build_make
         run: |
-          make > make_build.log 2>&1
+          make > make_build.log 2>&1 || (cat make_build.log && exit 1)
 
       
 
