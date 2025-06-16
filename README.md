@@ -1,23 +1,23 @@
 ---
 
-# 🏗️ C/C++ Building and Testing GitHub Action
+# C/C++ Building and Testing GitHub Action
 
 This reusable workflow is designed to **build and test C/C++ projects** using either **CMake** or **Make**, and with **GCC** or **Clang** as the compiler. It can be called from other workflows to automate CI pipelines for C/C++ projects.
 
 ---
 
-## 🔧 Features
+## Features
 
-- ✅ Supports both `gcc` and `clang` compilers  
-- ✅ Supports both `make` and `cmake` build systems  
-- 🧪 Runs unit tests via `test_exec` or a `run_tests.sh` script  
-- 📦 Uploads logs for build and test steps  
-- 📋 Summarizes results in the GitHub Actions step summary  
-- 🐳 Runs inside a Docker container for a consistent environment  
+-  Supports both `gcc` and `clang` compilers
+-  Supports both `make` and `cmake` build systems
+-  Runs unit tests via `test_exec` or a `run_tests.sh` script
+-  Uploads logs for build and test steps
+-  Summarizes results in the GitHub Actions step summary
+-  Runs inside a Docker container for a consistent environment
 
 ---
 
-## 📥 Inputs
+## Inputs
 
 | Input          | Description                         | Required | Accepted Values         |
 |----------------|-------------------------------------|----------|--------------------------|
@@ -26,7 +26,7 @@ This reusable workflow is designed to **build and test C/C++ projects** using ei
 
 ---
 
-## 🚀 Usage Example
+## Usage Example
 
 ```yaml
 jobs:
@@ -39,7 +39,7 @@ jobs:
 
 ---
 
-## 📂 Expected Project Structure
+## Expected Project Structure
 
 The workflow assumes the following structure in your repository:
 
@@ -59,16 +59,14 @@ The workflow assumes the following structure in your repository:
 
 ---
 
-## 📄 Output
+##  Output
 
-* 📝 Logs from build and test steps are saved to the `logs/` directory and uploaded as artifacts.  
-* ✅ A GitHub Actions **summary** is appended showing whether:
-  * Build succeeded or failed  
-  * Tests passed, failed, or were not found  
+*  Logs from build and test steps are saved to the `logs/` directory and uploaded as artifacts.
+*  A GitHub Actions **summary** is appended showing whether:
 
 ---
 
-### 🛠️ Debugging Tips
+### Debugging Tips
 
 * **Test Executable Location**:
   - If you're using **Make**, the `test_exec` binary should be present in the **root directory**.
