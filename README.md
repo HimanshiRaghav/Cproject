@@ -1,7 +1,8 @@
 
+````markdown
+
 ---
 
-````markdown
 # 🏗️ C/C++ Building and Testing GitHub Action
 
 This reusable workflow is designed to **build and test C/C++ projects** using either **CMake** or **Make**, and with **GCC** or **Clang** as the compiler. It can be called from other workflows to automate CI pipelines for C/C++ projects.
