@@ -14,14 +14,12 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/catthehacker/ubuntu:act-latest
+    runs-on: isg-ocp-x86-small
     env:
       BUILD_SYSTEM: ${{ inputs.build-system }}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
 
       - name: Validate inputs
         run: |
@@ -61,30 +59,25 @@ jobs:
         if: ${{ inputs.build-system == 'cmake' }}
         id: build_cmake
         run: |
-          cmake . > cmake_configure.log 2>&1 || (cat cmake_configure.log && exit 1)
-          make > cmake_build.log 2>&1 || (cat cmake_build.log && exit 1)
+          mkdir -p build logs
+          cd build
+          cmake .. > ../logs/cmake_configure.log 2>&1
+          make > ../logs/cmake_build.log 2>&1
 
       - name: Build with Make
         if: ${{ inputs.build-system == 'make' }}
         id: build_make
         run: |
-          make > make_build.log 2>&1 || (cat make_build.log && exit 1)
+          mkdir -p logs
+          make > logs/make_build.log 2>&1
 
-      # - name: Run C++ Linter (cppcheck)
-      #   if: ${{ inputs.compiler == 'clang' }}
-      #   run: |
-      #     sudo apt-get update && sudo apt-get install -y cppcheck
-      #     cppcheck --enable=all --inconclusive --quiet .
-
-      # - name: Run C++ Linter (clang-tidy)
-      #   if: ${{ inputs.compiler == 'clang' }}
-      #   run: |
-      #     find . -name '*.cpp' -print0 | xargs -0 clang-tidy || true
-
+      
 
       - name: Run Unit Tests
         id: test_step
         run: |
+          mkdir -p logs
+
           # Print debug info
           make print-debug || true
 
@@ -98,29 +91,31 @@ jobs:
           # Run test script or binary
           if [ -f "./run_tests.sh" ]; then
             chmod +x ./run_tests.sh
-            ./run_tests.sh > test_output.log 2>&1
-            echo "Exit Code: $?" >> test_output.log
+            ./run_tests.sh > logs/test_output.log 2>&1
+            echo "Exit Code: $?" >> logs/test_output.log
           elif [ -f "./test_exec" ]; then
             chmod +x ./test_exec
-            ./test_exec > test_output.log 2>&1
-            echo "Exit Code: $?" >> test_output.log
+            ./test_exec > logs/test_output.log 2>&1
+            echo "Exit Code: $?" >> logs/test_output.log
           else
-            echo "No test executable or test script found." > test_output.log
+            echo "No test executable or test script found." > logs/test_output.log
             exit 1
           fi
 
+      - name: Store build and test logs
+        if: always()
+        run: |
+          mkdir -p logs
+          find build -name "*.log" -exec cp {} logs/ \; 2>/dev/null || true
+          find . -maxdepth 1 -name "*.log" -exec cp {} logs/ \; 2>/dev/null || true
+        continue-on-error: true
 
       - name: Upload Logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: build-and-test-Logs
-          path: |
-            cmake_configure.log
-            cmake_build.log
-            make_build.log
-            test_output.log
-          if-no-files-found: ignore
+          name: build-and-test-logs
+          path: logs/
 
       - name: Summarize Build and Test Results
         if: always()
@@ -148,9 +143,9 @@ jobs:
           if [ "${{ steps.test_step.outcome }}" == "failure" ]; then
             echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           else
-            if grep -q "No test executable or test script found" test_output.log; then
+            if grep -q "No test executable or test script found" logs/test_output.log; then
               echo "| Tests | ⚠️ Not Found |" >> $GITHUB_STEP_SUMMARY
-            elif grep -i "error:" test_output.log || grep -i "fail" test_output.log; then
+            elif grep -i "error:" logs/test_output.log || grep -i "fail" logs/test_output.log; then
               echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             else
               echo "| Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
