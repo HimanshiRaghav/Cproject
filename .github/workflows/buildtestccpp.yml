@@ -73,6 +73,7 @@ jobs:
       - name: Run C++ Linter (cppcheck)
         if: ${{ inputs.compiler == 'clang' }}
         run: |
+          sudo apt-get update && sudo apt-get install -y cppcheck
           cppcheck --enable=all --inconclusive --quiet .
 
       - name: Run C++ Linter (clang-tidy)
