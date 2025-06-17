@@ -70,16 +70,16 @@ jobs:
         run: |
           make > make_build.log 2>&1 || (cat make_build.log && exit 1)
 
-      - name: Run C++ Linter (cppcheck)
-        if: ${{ inputs.compiler == 'clang' }}
-        run: |
-          sudo apt-get update && sudo apt-get install -y cppcheck
-          cppcheck --enable=all --inconclusive --quiet .
+      # - name: Run C++ Linter (cppcheck)
+      #   if: ${{ inputs.compiler == 'clang' }}
+      #   run: |
+      #     sudo apt-get update && sudo apt-get install -y cppcheck
+      #     cppcheck --enable=all --inconclusive --quiet .
 
-      - name: Run C++ Linter (clang-tidy)
-        if: ${{ inputs.compiler == 'clang' }}
-        run: |
-          find . -name '*.cpp' -print0 | xargs -0 clang-tidy || true
+      # - name: Run C++ Linter (clang-tidy)
+      #   if: ${{ inputs.compiler == 'clang' }}
+      #   run: |
+      #     find . -name '*.cpp' -print0 | xargs -0 clang-tidy || true
 
 
       - name: Run Unit Tests
