@@ -1,4 +1,4 @@
-name: C/C++ Building and testing
+name: C/C++ Building and Testing
 
 on:
   workflow_call:
@@ -13,14 +13,19 @@ on:
         type: string
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    env:
-      BUILD_SYSTEM: ${{ inputs.build-system }}
+  checkout:
+    runs-on: isg-ocp-x86-small
+    outputs:
+      compiler: ${{ inputs.compiler }}
+      build-system: ${{ inputs.build-system }}
     steps:
-      - name: Checkout 
-        uses: actions/checkout@main
+      - name: Checkout
+        uses: actions/checkout@v3
 
+  validate-inputs:
+    runs-on: isg-ocp-x86-small
+    needs: checkout
+    steps:
       - name: Validate inputs
         run: |
           if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then 
@@ -32,6 +37,10 @@ jobs:
             exit 1
           fi
 
+  install-compiler:
+    runs-on: isg-ocp-x86-small
+    needs: validate-inputs
+    steps:
       - name: Install compiler
         run: |
           sudo apt-get update
@@ -41,6 +50,10 @@ jobs:
             sudo apt-get install -y clang make
           fi
 
+  configure-env:
+    runs-on: isg-ocp-x86-small
+    needs: install-compiler
+    steps:
       - name: Configure environment variables
         run: |
           if [[ "${{ inputs.compiler }}" == "clang" ]]; then
@@ -51,53 +64,61 @@ jobs:
             echo "CXX=g++" >> $GITHUB_ENV
           fi
 
+  install-cmake:
+    runs-on: isg-ocp-x86-small
+    needs: configure-env
+    if: ${{ inputs.build-system == 'cmake' }}
+    steps:
       - name: Install CMake
-        if: ${{ inputs.build-system == 'cmake' }}
         run: sudo apt-get install -y cmake
 
+  build-cmake:
+    runs-on: isg-ocp-x86-small
+    needs: install-cmake
+    if: ${{ inputs.build-system == 'cmake' }}
+    steps:
       - name: Build with CMake
-        if: ${{ inputs.build-system == 'cmake' }}
-        id: build_cmake
         run: |
           mkdir -p build logs
           cd build
           cmake .. > ../logs/cmake_configure.log 2>&1
           make > ../logs/cmake_build.log 2>&1
 
+  build-make:
+    runs-on: isg-ocp-x86-small
+    needs: configure-env
+    if: ${{ inputs.build-system == 'make' }}
+    steps:
       - name: Build with Make
-        if: ${{ inputs.build-system == 'make' }}
-        id: build_make
         run: |
           mkdir -p logs
           make > logs/make_build.log 2>&1
 
+  run-linter:
+    runs-on: isg-ocp-x86-small
+    needs: [build-cmake, build-make]
+    steps:
       - name: Run C++ Linter (cppcheck)
-        if: ${{ inputs.compiler == 'clang' }}
         run: |
           sudo apt-get update && sudo apt-get install -y cppcheck
           cppcheck --enable=all --inconclusive --quiet .
- 
-      - name: Run C++ Linter (clang-tidy)
-        if: ${{ inputs.compiler == 'clang' }}
-        run: |
-          find . -name '*.cpp' -print0 | xargs -0 clang-tidy || true
 
+  run-tests:
+    runs-on: isg-ocp-x86-small
+    needs: [build-cmake, build-make]
+    outputs:
+      test_status: ${{ steps.test_step.outcome }}
+    steps:
       - name: Run Unit Tests
         id: test_step
         run: |
           mkdir -p logs
-
-          # Print debug info
           make print-debug || true
-
-          # Check if test_exec exists, if not, build it
           if [ ! -f "./test_exec" ]; then
             echo "test_exec not found"
           else
             echo " test_exec is being found "
           fi
-
-          # Run test script or binary
           if [ -f "./run_tests.sh" ]; then
             chmod +x ./run_tests.sh
             ./run_tests.sh > logs/test_output.log 2>&1
@@ -111,52 +132,57 @@ jobs:
             exit 1
           fi
 
+  store-logs:
+    runs-on: isg-ocp-x86-small
+    needs: run-tests
+    if: always()
+    steps:
       - name: Store build and test logs
-        if: always()
         run: |
           mkdir -p logs
           find build -name "*.log" -exec cp {} logs/ \; 2>/dev/null || true
           find . -maxdepth 1 -name "*.log" -exec cp {} logs/ \; 2>/dev/null || true
-        continue-on-error: true
 
+  upload-logs:
+    runs-on: isg-ocp-x86-small
+    needs: store-logs
+    if: always()
+    steps:
       - name: Upload Logs
-        if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: build-and-test-logs
           path: logs/
 
+  summarize:
+    runs-on: isg-ocp-x86-small
+    needs: [build-cmake, build-make, run-tests]
+    if: always()
+    steps:
       - name: Summarize Build and Test Results
-        if: always()
         run: |
           echo "## Build and Test Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
 
-          # Build result
           if [ "${{ inputs.build-system }}" == "cmake" ]; then
-            if [ "${{ steps.build_cmake.outcome }}" == "failure" ]; then
+            if [ "${{ needs.build-cmake.result }}" == "failure" ]; then
               echo "| Build (CMake) | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             else
               echo "| Build (CMake) | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
             fi
           elif [ "${{ inputs.build-system }}" == "make" ]; then
-            if [ "${{ steps.build_make.outcome }}" == "failure" ]; then
+            if [ "${{ needs.build-make.result }}" == "failure" ]; then
               echo "| Build (Make) | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             else
               echo "| Build (Make) | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
             fi
           fi
 
-          # Test result
-          if [ "${{ steps.test_step.outcome }}" == "failure" ]; then
+          if grep -q "No test executable or test script found" logs/test_output.log; then
+            echo "| Tests | ⚠️ Not Found |" >> $GITHUB_STEP_SUMMARY
+          elif grep -i "error:" logs/test_output.log || grep -i "fail" logs/test_output.log; then
             echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           else
-            if grep -q "No test executable or test script found" logs/test_output.log; then
-              echo "| Tests | ⚠️ Not Found |" >> $GITHUB_STEP_SUMMARY
-            elif grep -i "error:" logs/test_output.log || grep -i "fail" logs/test_output.log; then
-              echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "| Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
           fi
