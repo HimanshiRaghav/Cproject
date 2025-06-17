@@ -14,7 +14,7 @@ on:
 
 jobs:
   checkout:
-    runs-on: isg-ocp-x86-small
+    runs-on: ubuntu-latest
     outputs:
       compiler: ${{ inputs.compiler }}
       build-system: ${{ inputs.build-system }}
@@ -149,7 +149,7 @@ jobs:
     if: always()
     steps:
       - name: Upload Logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-and-test-logs
           path: logs/
