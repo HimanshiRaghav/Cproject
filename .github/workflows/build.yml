@@ -1,0 +1,98 @@
+name: C/C++ Build
+
+on:
+  workflow_call:
+    inputs:
+      compiler:
+        description: Compiler either gcc or clang
+        required: true
+        type: string
+      build-system:
+        description: Build system either make or cmake
+        required: true
+        type: string
+
+jobs: 
+  build: 
+    runs-on: ubuntu-latest
+    env:
+      BUILD_SYSTEM: ${{ inputs.build-system }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+      
+      - name: Validate inputs
+        run: |
+          if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then 
+            echo "Invalid compiler: ${{ inputs.compiler }}"
+            exit 1
+          fi
+          if [[ "${{ inputs.build-system }}" != "make" && "${{ inputs.build-system }}" != "cmake" ]]; then
+            echo "Invalid build system: ${{ inputs.build-system }}"
+            exit 1
+          fi
+
+      - name: Install Compiler
+        run: |
+          sudo apt-get update
+          if [[ "${{ inputs.compiler }}" == "gcc" ]]; then
+            sudo apt-get install -y build-essential
+          else
+            sudo apt-get install -y clang make
+          fi
+
+      - name: Configure environment variables
+        run: |
+          if [[ "${{ inputs.compiler }}" == "clang" ]]; then
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          else
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          fi          
+
+      - name: Run C++ Linter (cppcheck)
+        run: |
+          sudo apt-get update && sudo apt-get install -y cppcheck
+          cppcheck --enable=all --inconclusive --quiet .
+      
+      - name: Install CMake
+        if: ${{ inputs.build-system == 'cmake' }}
+        run: sudo apt-get install -y cmake
+
+      - name: Build with CMake
+        if: ${{ inputs.build-system == 'cmake' }}
+        id: build_cmake
+        run: |
+          mkdir build
+          cd build
+          cmake .. 
+          make 
+
+      - name: Build with Make
+        if: ${{ inputs.build-system == 'make' }}
+        id: build_make
+        run: |
+          make 
+      
+      - name: Summarize Build
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Build result
+          if [ "${{ inputs.build-system }}" == "cmake" ]; then
+            if [ "${{ steps.build_cmake.outcome }}" == "failure" ]; then
+              echo "| Build (CMake) | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Build (CMake) | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          elif [ "${{ inputs.build-system }}" == "make" ]; then
+            if [ "${{ steps.build_make.outcome }}" == "failure" ]; then
+              echo "| Build (Make) | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Build (Make) | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
