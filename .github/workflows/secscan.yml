@@ -55,8 +55,11 @@ jobs:
         languages: c,cpp
         
     - name: Autobuild (for CodeQL)
-      uses: ./.github/workflows/buildtestccpp.yml
-      
+      uses: ./.github/workflows/build.yml
+      with: 
+        compiler: gcc
+        build-system: make
+        
     - name: Perform CodeQL analysis
       uses: github/codeql-action/analyze@v3
 
