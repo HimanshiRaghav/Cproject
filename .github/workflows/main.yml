@@ -9,3 +9,4 @@ jobs:
     uses: ./.github/workflows/secscan.yml
     with:
       compiler: clang
+      build-system: cmake
