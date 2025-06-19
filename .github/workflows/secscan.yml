@@ -61,7 +61,7 @@ jobs:
 
     - name: Upload Scan Logs
       if: always() 
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with: 
         name: static-scan-logs
         path: logs/
