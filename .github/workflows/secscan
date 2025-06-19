@@ -1,0 +1,67 @@
+name: Security Scan
+on:
+  
+  workflow_call:
+    inputs:
+      compiler:
+        description: Compiler either gcc or clang
+        required: true
+        type: string
+
+
+jobs:
+  security-scans:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Validate Compiler input
+      run: |
+        if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then 
+          echo "Invalid compiler: ${{ inputs.compiler }}"
+          exit 1
+        fi
+    
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake clang cppcheck valgrind clang-tools
+    
+    - name: Configure Compiler environment
+      run: |
+        if [[ "${{ inputs.compiler }}" == "clang" ]]; then
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+        else
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+        fi
+
+    - name: Run cppcheck (Static- without executing)
+      run: |
+        cppcheck --enable=all --inconclusive --quiet . || true
+
+    - name: Run clang Static
+      run: | 
+        scan-build cmake .|| true
+        scan-build make || true
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: |
+          c
+          cpp
+
+    - name: Perform CodeQL analysis
+      uses: github/codeql-action/analyze@v2
+
+    - name: Upload Scan Logs
+      if: always() 
+      uses: actions/upload-artifact@v3
+      with: 
+        name: static-scan-logs
+        path: logs/
