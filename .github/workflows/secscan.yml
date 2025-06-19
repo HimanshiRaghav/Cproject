@@ -10,6 +10,12 @@ on:
 
 
 jobs:
+  build-for-codeql:
+    uses: ./.github/workflows/build.yml
+    with:
+      compiler: gcc
+      build-system: make 
+      
   security-scans:
     runs-on: ubuntu-latest
     steps:
@@ -54,11 +60,6 @@ jobs:
       with:
         languages: c,cpp
         
-    - name: Autobuild (for CodeQL)
-      uses: ./.github/workflows/build.yml
-      with: 
-        compiler: gcc
-        build-system: make
         
     - name: Perform CodeQL analysis
       uses: github/codeql-action/analyze@v3
