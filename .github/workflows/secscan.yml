@@ -7,28 +7,27 @@ on:
         description: Compiler either gcc or clang
         required: true
         type: string
+      build-system:
+        description: Build system either make or cmake
+        required: true
+        type: string
 
-
-jobs:
-  build-for-codeql:
-    uses: ./.github/workflows/build.yml
-    with:
-      compiler: gcc
-      build-system: make 
-      
+jobs:      
   security-scans:
     runs-on: ubuntu-latest
-    needs: build-for-codeql
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Validate Compiler input
+    - name: Validate inputs
       run: |
-        if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then 
-          echo "Invalid compiler: ${{ inputs.compiler }}"
+        if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then             echo "Invalid compiler: ${{ inputs.compiler }}"
+          exit 1
+        fi
+        if [[ "${{ inputs.build-system }}" != "make" && "${{ inputs.build-system }}" != "cmake" ]]; then
+          echo "Invalid build system: ${{ inputs.build-system }}"
           exit 1
         fi
     
@@ -36,7 +35,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential cmake clang cppcheck valgrind clang-tools
-    
+        if [[ "${{ inputs.compiler }}" == "gcc" ]]; then
+          sudo apt-get install -y build-essential
+        else
+          sudo apt-get install -y clang make
+        fi
     - name: Configure Compiler environment
       run: |
         if [[ "${{ inputs.compiler }}" == "clang" ]]; then
@@ -60,6 +63,20 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: c,cpp
+    - name: Build with CMake
+      if: ${{ inputs['build-system'] == 'cmake' }}
+      id: build_cmake
+      run: |
+        mkdir build
+        cd build
+        cmake .. 
+        make 
+
+    - name: Build with Make
+      if: ${{ inputs['build-system'] == 'make' }}
+      id: build_make
+      run: |
+        make 
         
         
     - name: Perform CodeQL analysis
