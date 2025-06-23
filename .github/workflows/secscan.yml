@@ -67,6 +67,12 @@ jobs:
         build-mode: manual
         setup: true
 
+    - name: Create CodeQL database manually
+      run: |
+        export CODEQL_DATABASE="cpp-codeql-db"
+        mkdir -p "$CODEQL_DATABASE"
+        echo "CODEQL_DATABASE=$CODEQL_DATABASE" >> $GITHUB_ENV
+
     - name: Trace Make Build with CodeQL
       if: ${{ inputs['build-system'] == 'make' }}
       shell: bash
