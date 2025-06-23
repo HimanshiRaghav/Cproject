@@ -6,7 +6,9 @@ on:
   workflow_dispatch:
 jobs:
   build-and-test:
-    uses: ./.github/workflows/secscan.yml
-    with:
-      compiler: clang
-      build-system: make
+    uses: .github/workflows/secscan.yml
+    with:
+      compiler: clang
+      build-system: make
+
+
