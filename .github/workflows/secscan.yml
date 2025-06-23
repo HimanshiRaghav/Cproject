@@ -73,8 +73,9 @@ jobs:
       run: |
         CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
         echo "Using CodeQL CLI: $CODEQL"
-         "$CODEQL" database create cpp-codeql-db --language=cpp --command="bash -c 'make clean && make VERBOSE=1'"
+        "$CODEQL" database create cpp-codeql-db --language=cpp --command="bash -c '([ -f Makefile ] && make clean || echo \"No clean target\") && make VERBOSE=1'"
         echo "CODEQL_DATABASE=cpp-codeql-db" >> $GITHUB_ENV
+        
     - name: Create and trace CodeQL database (CMake)
       if: ${{ inputs['build-system'] == 'cmake' }}
       shell: bash
