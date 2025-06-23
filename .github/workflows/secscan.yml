@@ -69,14 +69,18 @@ jobs:
 
     - name: Trace Make Build with CodeQL
       if: ${{ inputs['build-system'] == 'make' }}
+      shell: bash
       run: |
         codeql database trace-command --database="$CODEQL_DATABASE" -- make
 
     - name: Trace CMake Build with CodeQL
       if: ${{ inputs['build-system'] == 'cmake' }}
+      shell: bash
       run: |
         codeql database trace-command --database="$CODEQL_DATABASE" -- bash -c 'mkdir build && cd build && cmake .. && make'
-        
+    - name: Locate codeql
+      run: which codeql || echo "codeql not found in PATH"
+  
     - name: Perform CodeQL analysis
       uses: github/codeql-action/analyze@v3
 
