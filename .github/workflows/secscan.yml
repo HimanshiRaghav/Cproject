@@ -65,16 +65,17 @@ jobs:
       with:
         languages: c,cpp
         build-mode: manual
+        setup: true
 
     - name: Trace Make Build with CodeQL
       if: ${{ inputs['build-system'] == 'make' }}
       run: |
-        "$CODEQL_ACTION_PATH"/codeql/codeql database trace-command --database="$CODEQL_DATABASE" -- make
+        codeql database trace-command --database="$CODEQL_DATABASE" -- make
 
     - name: Trace CMake Build with CodeQL
       if: ${{ inputs['build-system'] == 'cmake' }}
       run: |
-        "$CODEQL_ACTION_PATH"/codeql/codeql database trace-command --database="$CODEQL_DATABASE" -- bash -c 'mkdir build && cd build && cmake .. && make'
+        codeql database trace-command --database="$CODEQL_DATABASE" -- bash -c 'mkdir build && cd build && cmake .. && make'
         
     - name: Perform CodeQL analysis
       uses: github/codeql-action/analyze@v3
