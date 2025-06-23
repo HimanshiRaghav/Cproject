@@ -72,31 +72,38 @@ jobs:
         languages: c,cpp
         build-mode: manual
         setup: true
+
+    - name: Initialize CodeQL database manually
+      run: |
+        CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
+        echo "Using CodeQL CLI: $CODEQL"
+        "$CODEQL" database init cpp-codeql-db --language=cpp --source-root=.
+        echo "CODEQL=$CODEQL" >> $GITHUB_ENV
+        echo "CODEQL_DATABASE=cpp-codeql-db" >> $GITHUB_ENV
+    
     - name: Create build script
       run: |
         echo '#!/bin/bash' > build-codeql.sh
         echo '[ -f Makefile ] && make clean || echo "No clean target"' >> build-codeql.sh
         echo 'make VERBOSE=1' >> build-codeql.sh
         chmod +x build-codeql.sh
-
-    - name: Create and trace CodeQL database (Make)
+    
+    - name: Trace CodeQL database build (Make)
       if: ${{ inputs['build-system'] == 'make' }}
-      shell: bash
       run: |
-        CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
-        echo "Using CodeQL CLI: $CODEQL"
-        "$CODEQL" database create cpp-codeql-db --language=cpp --command="./build-codeql.sh"
-        echo "CODEQL_DATABASE=cpp-codeql-db" >> $GITHUB_ENV
-        
-    - name: Create and trace CodeQL database (CMake)
+        $CODEQL database trace-command cpp-codeql-db ./build-codeql.sh
+    
+    - name: Trace CodeQL database build (CMake)
       if: ${{ inputs['build-system'] == 'cmake' }}
-      shell: bash
       run: |
-        CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
-        echo "Using CodeQL CLI: $CODEQL"
-        "$CODEQL" database create cpp-codeql-db --language=cpp --command="bash -c 'mkdir build && cd build && cmake .. && make'"
-        echo "CODEQL_DATABASE=cpp-codeql-db" >> $GITHUB_ENV
-
+        echo '#!/bin/bash' > build-cmake.sh
+        echo 'mkdir -p build && cd build && cmake .. && make VERBOSE=1' >> build-cmake.sh
+        chmod +x build-cmake.sh
+        $CODEQL database trace-command cpp-codeql-db ./build-cmake.sh
+    
+    - name: Finalize CodeQL database
+      run: |
+        $CODEQL database finalize cpp-codeql-db
 
     - name: Debug CodeQL Path
       run: find /opt/hostedtoolcache/CodeQL -type f -name codeql
