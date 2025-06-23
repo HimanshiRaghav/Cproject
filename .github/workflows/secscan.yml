@@ -69,15 +69,16 @@ jobs:
     - name: Trace Make Build with CodeQL
       if: ${{ inputs['build-system'] == 'make' }}
       run: |
-        codeql database trace-command --database="$CODEQL_DATABASE" -- make
+        "$CODEQL_ACTION_PATH"/codeql/codeql database trace-command --database="$CODEQL_DATABASE" -- make
 
     - name: Trace CMake Build with CodeQL
       if: ${{ inputs['build-system'] == 'cmake' }}
       run: |
-        codeql database trace-command --database="$CODEQL_DATABASE" -- bash -c 'mkdir build && cd build && cmake .. && make'
+        "$CODEQL_ACTION_PATH"/codeql/codeql database trace-command --database="$CODEQL_DATABASE" -- bash -c 'mkdir build && cd build && cmake .. && make'
         
     - name: Perform CodeQL analysis
       uses: github/codeql-action/analyze@v3
+
 
 
     - name: Upload Scan Logs
