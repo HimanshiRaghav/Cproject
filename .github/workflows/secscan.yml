@@ -59,28 +59,26 @@ jobs:
         scan-build cmake .|| true
         scan-build make || true
 
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: c,cpp
-    - name: Build with CMake
-      if: ${{ inputs['build-system'] == 'cmake' }}
-      id: build_cmake
-      run: |
-        mkdir build
-        cd build
-        cmake .. 
-        make 
+        build-mode: manual
 
-    - name: Build with Make
+    - name: Trace Make Build with CodeQL
       if: ${{ inputs['build-system'] == 'make' }}
-      id: build_make
       run: |
-        make 
-        
+        codeql database trace-command --database="$CODEQL_DATABASE" -- make
+
+    - name: Trace CMake Build with CodeQL
+      if: ${{ inputs['build-system'] == 'cmake' }}
+      run: |
+        codeql database trace-command --database="$CODEQL_DATABASE" -- bash -c 'mkdir build && cd build && cmake .. && make'
         
     - name: Perform CodeQL analysis
       uses: github/codeql-action/analyze@v3
+
 
     - name: Upload Scan Logs
       if: always() 
