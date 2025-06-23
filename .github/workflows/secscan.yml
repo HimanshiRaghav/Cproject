@@ -66,6 +66,12 @@ jobs:
         languages: c,cpp
         build-mode: manual
         setup: true
+    - name: Create build script
+      run: |
+        echo '#!/bin/bash' > build-codeql.sh
+        echo '[ -f Makefile ] && make clean || echo "No clean target"' >> build-codeql.sh
+        echo 'make VERBOSE=1' >> build-codeql.sh
+        chmod +x build-codeql.sh
 
     - name: Create and trace CodeQL database (Make)
       if: ${{ inputs['build-system'] == 'make' }}
@@ -73,7 +79,7 @@ jobs:
       run: |
         CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
         echo "Using CodeQL CLI: $CODEQL"
-        "$CODEQL" database create cpp-codeql-db --language=cpp --command="bash -c '([ -f Makefile ] && make clean || echo \"No clean target\") && make VERBOSE=1'"
+        "$CODEQL" database create cpp-codeql-db --language=cpp --command="./build-codeql.sh"
         echo "CODEQL_DATABASE=cpp-codeql-db" >> $GITHUB_ENV
         
     - name: Create and trace CodeQL database (CMake)
