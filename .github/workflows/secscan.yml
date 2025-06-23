@@ -1,6 +1,8 @@
 name: Security Scan
+
 on:
-  
+  push:
+    branches: [ main ]
   workflow_call:
     inputs:
       compiler:
@@ -11,120 +13,112 @@ on:
         description: Build system either make or cmake
         required: true
         type: string
-        
+
 permissions:
   actions: read
   contents: read
   security-events: write
 
-
-jobs:      
+jobs:
   security-scans:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-    - name: Validate inputs
-      run: |
-        if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then             echo "Invalid compiler: ${{ inputs.compiler }}"
-          exit 1
-        fi
-        if [[ "${{ inputs.build-system }}" != "make" && "${{ inputs.build-system }}" != "cmake" ]]; then
-          echo "Invalid build system: ${{ inputs.build-system }}"
-          exit 1
-        fi
-    
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake clang cppcheck valgrind clang-tools
-        if [[ "${{ inputs.compiler }}" == "gcc" ]]; then
-          sudo apt-get install -y build-essential
-        else
-          sudo apt-get install -y clang make
-        fi
-    - name: Configure Compiler environment
-      run: |
-        if [[ "${{ inputs.compiler }}" == "clang" ]]; then
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CXX=clang++" >> $GITHUB_ENV
-        else
-          echo "CC=gcc" >> $GITHUB_ENV
-          echo "CXX=g++" >> $GITHUB_ENV
-        fi
+      - name: Validate inputs
+        run: |
+          if [[ "${{ inputs.compiler }}" != "gcc" && "${{ inputs.compiler }}" != "clang" ]]; then 
+            echo "Invalid compiler: ${{ inputs.compiler }}"
+            exit 1
+          fi
+          if [[ "${{ inputs.build-system }}" != "make" && "${{ inputs.build-system }}" != "cmake" ]]; then
+            echo "Invalid build system: ${{ inputs.build-system }}"
+            exit 1
+          fi
 
-    - name: Run cppcheck (Static- without executing)
-      run: |
-        cppcheck --enable=all --inconclusive --quiet . || true
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake make clang cppcheck valgrind build-essential clang-tools
 
-    - name: Run clang Static
-      run: | 
-        scan-build cmake .|| true
-        scan-build make || true
+      - name: Configure Compiler environment
+        run: |
+          if [[ "${{ inputs.compiler }}" == "clang" ]]; then
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          else
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          fi
 
+      - name: Run cppcheck (Static Analysis)
+        run: |
+          cppcheck --enable=all --inconclusive --quiet . || true
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: c,cpp
-        build-mode: manual
-        setup: true
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: c,cpp
+          build-mode: manual
+          setup: true
 
-    - name: Initialize CodeQL database manually
-      run: |
-        CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
-        echo "Using CodeQL CLI: $CODEQL"
-        "$CODEQL" database init cpp-codeql-db --language=cpp --source-root=.
-        echo "CODEQL=$CODEQL" >> $GITHUB_ENV
-        echo "CODEQL_DATABASE=cpp-codeql-db" >> $GITHUB_ENV
-    
-    - name: Create build script
-      run: |
-        echo '#!/bin/bash' > build-codeql.sh
-        echo '[ -f Makefile ] && make clean || echo "No clean target"' >> build-codeql.sh
-        echo 'make VERBOSE=1' >> build-codeql.sh
-        chmod +x build-codeql.sh
-    
-    - name: Trace CodeQL database build (Make)
-      if: ${{ inputs['build-system'] == 'make' }}
-      run: |
-        $CODEQL database trace-command cpp-codeql-db ./build-codeql.sh
-    
-    - name: Trace CodeQL database build (CMake)
-      if: ${{ inputs['build-system'] == 'cmake' }}
-      run: |
-        echo '#!/bin/bash' > build-cmake.sh
-        echo 'mkdir -p build && cd build && cmake .. && make VERBOSE=1' >> build-cmake.sh
-        chmod +x build-cmake.sh
-        $CODEQL database trace-command cpp-codeql-db ./build-cmake.sh
-    
-    - name: Finalize CodeQL database
-      run: |
-        $CODEQL database finalize cpp-codeql-db
+      - name: Initialize CodeQL Database
+        run: |
+          CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
+          echo "Using CodeQL CLI: $CODEQL"
+          $CODEQL database init cpp-codeql-db --language=cpp --source-root=.
+          echo "CODEQL=$CODEQL" >> $GITHUB_ENV
 
-    - name: Debug CodeQL Path
-      run: find /opt/hostedtoolcache/CodeQL -type f -name codeql
+      - name: Prepare Build Script
+        if: ${{ inputs.build-system == 'make' }}
+        run: |
+          echo '#!/bin/bash' > build-codeql.sh
+          echo '[ -f Makefile ] && make clean || echo "No clean target"' >> build-codeql.sh
+          echo 'make VERBOSE=1' >> build-codeql.sh
+          chmod +x build-codeql.sh
 
-  
-    - name: Perform CodeQL analysis
-      uses: github/codeql-action/analyze@v3
+      - name: Prepare CMake Build Script
+        if: ${{ inputs.build-system == 'cmake' }}
+        run: |
+          echo '#!/bin/bash' > build-cmake.sh
+          echo 'mkdir -p build' >> build-cmake.sh
+          echo 'cd build' >> build-cmake.sh
+          echo 'cmake ..' >> build-cmake.sh
+          echo 'make VERBOSE=1' >> build-cmake.sh
+          chmod +x build-cmake.sh
 
-    - name: Upload CodeQL Logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: codeql-logs
-        path: |
-          cpp-codeql-db/log
-          cpp-codeql-db/tracing
+      - name: Trace CodeQL Build (Make)
+        if: ${{ inputs.build-system == 'make' }}
+        run: |
+          $CODEQL database trace-command cpp-codeql-db ./build-codeql.sh
 
+      - name: Trace CodeQL Build (CMake)
+        if: ${{ inputs.build-system == 'cmake' }}
+        run: |
+          $CODEQL database trace-command cpp-codeql-db ./build-cmake.sh
 
-    - name: Upload Scan Logs
-      if: always() 
-      uses: actions/upload-artifact@v4
-      with: 
-        name: static-scan-logs
-        path: logs/
+      - name: Finalize CodeQL Database
+        run: |
+          $CODEQL database finalize cpp-codeql-db
+
+      - name: Analyze CodeQL
+        uses: github/codeql-action/analyze@v3
+
+      - name: Upload CodeQL Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-logs
+          path: |
+            cpp-codeql-db/log
+            cpp-codeql-db/tracing
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-scan-logs
+          path: logs/
