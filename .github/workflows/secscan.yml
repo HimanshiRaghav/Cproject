@@ -72,6 +72,7 @@ jobs:
           CODEQL=$(find /opt/hostedtoolcache/CodeQL -type f -name codeql | head -n 1)
           echo "Using CodeQL CLI: $CODEQL"
           echo "CODEQL=$CODEQL" >> $GITHUB_ENV
+          export CODEQL=$CODEQL
           echo "CODEQL_DATABASE=cpp-codeql-db" >> $GITHUB_ENV
           $CODEQL database init cpp-codeql-db --language=cpp --source-root=.
 
